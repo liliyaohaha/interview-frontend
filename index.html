@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>前端面试题刷题助手</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>📚 前端刷题助手</h1>
+            <p class="subtitle">随时随地巩固前端知识</p>
+        </header>
+
+        <!-- 主操作区 -->
+        <div class="main-content">
+            <!-- 快捷操作 -->
+            <div class="quick-actions">
+                <button class="action-btn primary" onclick="showQuickQuestion()">
+                    <span class="icon">🎯</span>
+                    <span>随机出题</span>
+                </button>
+                <button class="action-btn" onclick="showStats()">
+                    <span class="icon">📊</span>
+                    <span>答题统计</span>
+                </button>
+                <button class="action-btn" onclick="showWrongQuestions()">
+                    <span class="icon">❌</span>
+                    <span>错题本</span>
+                </button>
+            </div>
+
+            <!-- 模块选择 -->
+            <div class="module-selector">
+                <p class="label">选择模块：</p>
+                <div class="tags">
+                    <span class="tag active" data-module="all">全部</span>
+                    <span class="tag" data-module="vue">Vue</span>
+                    <span class="tag" data-module="css">CSS</span>
+                    <span class="tag" data-module="javascript">JavaScript</span>
+                    <span class="tag" data-module="react">React</span>
+                </div>
+            </div>
+
+            <!-- 难度选择 -->
+            <div class="difficulty-selector">
+                <p class="label">选择难度：</p>
+                <div class="tags">
+                    <span class="tag active" data-difficulty="all">全部</span>
+                    <span class="tag" data-difficulty="easy">简单</span>
+                    <span class="tag" data-difficulty="medium">中等</span>
+                    <span class="tag" data-difficulty="hard">困难</span>
+                </div>
+            </div>
+
+            <!-- 题目类型 -->
+            <div class="type-selector">
+                <p class="label">题目类型：</p>
+                <div class="tags">
+                    <span class="tag active" data-type="all">全部</span>
+                    <span class="tag" data-type="choice">选择题</span>
+                    <span class="tag" data-type="question">问答题</span>
+                </div>
+            </div>
+
+            <!-- 自定义生成 -->
+            <div class="custom-section">
+                <p class="label">自定义题目生成：</p>
+                <textarea 
+                    id="customPrompt" 
+                    placeholder="例如：帮我生成一道关于Vue组件通信的中等难度选择题"
+                    class="custom-textarea"
+                ></textarea>
+                <button class="submit-btn" onclick="generateCustomQuestion()">
+                    生成题目
+                </button>
+            </div>
+        </div>
+
+        <!-- 题目展示区 -->
+        <div id="questionArea" class="question-area hidden">
+            <div class="question-content">
+                <div class="question-header">
+                    <span class="question-id" id="questionId">题目ID: -</span>
+                    <span class="question-tags" id="questionTags"></span>
+                </div>
+                <div class="question-body" id="questionText"></div>
+                <div class="question-options" id="questionOptions"></div>
+            </div>
+            <div class="answer-section">
+                <textarea 
+                    id="answerInput" 
+                    placeholder="请输入你的答案（选择题输入字母，如A）"
+                    class="answer-input"
+                ></textarea>
+                <div class="answer-actions">
+                    <button class="btn secondary" onclick="closeQuestion()">取消</button>
+                    <button class="btn primary" onclick="submitAnswer()">提交答案</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果展示区 -->
+        <div id="resultArea" class="result-area hidden">
+            <div class="result-content">
+                <div class="result-icon" id="resultIcon"></div>
+                <div class="result-text" id="resultText"></div>
+                <div class="result-details" id="resultDetails"></div>
+            </div>
+            <div class="result-actions">
+                <button class="btn primary" onclick="showNextQuestion()">下一题</button>
+                <button class="btn secondary" onclick="closeResult()">关闭</button>
+            </div>
+        </div>
+
+        <!-- 统计/错题展示区 -->
+        <div id="statsArea" class="stats-area hidden">
+            <div class="stats-content" id="statsContent"></div>
+            <button class="close-stats" onclick="closeStats()">关闭</button>
+        </div>
+
+        <!-- 底部提示 -->
+        <footer class="footer">
+            <p>💡 提示：可以随时在上方聊天窗口直接对话刷题</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
