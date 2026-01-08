@@ -6,10 +6,13 @@
 
 // ==================== 状态管理 ====================
 let currentQuestion = null;
+let questionList = [];  // 题目列表，支持多道题目
+let currentQuestionIndex = 0;  // 当前题目索引
 let currentSettings = {
     module: 'all',
     difficulty: 'all',
-    type: 'all'
+    type: 'all',
+    count: 1  // 题目数量，默认1道
 };
 
 // ==================== 工具函数 ====================
@@ -61,16 +64,35 @@ function initTagSelectors() {
             currentSettings.type = this.dataset.type;
         });
     });
+
+    // 题目数量选择
+    document.querySelectorAll('.count-selector .tag').forEach(tag => {
+        tag.addEventListener('click', function() {
+            document.querySelectorAll('.count-selector .tag').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentSettings.count = parseInt(this.dataset.count);
+        });
+    });
 }
 
 // ==================== 题目相关函数 ====================
 function showQuickQuestion() {
+    // 重置题目列表和索引
+    questionList = [];
+    currentQuestionIndex = 0;
     generateQuestionPrompt();
 }
 
 function generateQuestionPrompt() {
     // 构建题目请求
-    let prompt = '请随机出一道';
+    let prompt = '请';
+    
+    // 根据题目数量调整提示语
+    if (currentSettings.count > 1) {
+        prompt += `随机出${currentSettings.count}道`;
+    } else {
+        prompt += '随机出一道';
+    }
     
     if (currentSettings.module !== 'all') {
         prompt += `${currentSettings.module}相关的`;
@@ -88,6 +110,13 @@ function generateQuestionPrompt() {
     }
     
     prompt += '。';
+    
+    // 如果是多道题目，要求返回JSON数组格式
+    if (currentSettings.count > 1) {
+        prompt += ' 请以JSON数组格式返回，每道题目包含：id、content、options（选择题）、module、type、difficulty字段。';
+    } else {
+        prompt += ' 请以JSON格式返回，包含：id、content、options（选择题）、module、type、difficulty字段。';
+    }
     
     // 调用Agent获取题目
     callAgent(prompt, handleQuestionResponse);
@@ -114,7 +143,7 @@ function callAgent(message, callback) {
     
     // 示例：使用fetch调用API（需要替换为实际的API地址）
     const AGENT_API_URL = 'https://b9t6wd8hz9.coze.site/stream_run';
-    const API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjMxOThhOThiLTZiNzEtNGNiZC04Mjc2LWIyMzJlZGYyZDY2NyJ9.eyJpc3MiOiJodHRwczovL2FwaS5jb3plLmNuIiwiYXVkIjpbIkc4RnVXdkMzT0tFelFvdGs4amdXYkl2RXhsZFhNSXdDIl0sImV4cCI6ODIxMDI2Njg3Njc5OSwiaWF0IjoxNzY3ODQxNTEzLCJzdWIiOiJzcGlmZmU6Ly9hcGkuY296ZS5jbi93b3JrbG9hZF9pZGVudGl0eS9pZDo3NTkyNzk2OTc1MzQzMzM3NTE1Iiwic3JjIjoiaW5ib3VuZF9hdXRoX2FjY2Vzc190b2tlbl9pZDo3NTkyODIxNDgzNTkyNzQ1MDAyIn0.ExaVg4laFQTmR69IHapvAoVVmH_9u6UgIHunGF6RywL8xSZa-LIfaWEDf83PZUSl0pvi3leLDYh32zJgBDxMAAymR6M44kB6p6f0q-lPk5xlfNwWIaJRrWUUfh3-tI4lkFf35oeeyRKgZoVzzuekU8w3fpYTrX5YmVyuQzYEPjgGTZ1UYwy15T1sPuyFs_zSXgHiNUggBu6XCoymaqiIBAZ0wn9nA_NkKBenQ227W_rAWZpJuZycvq9dT_Nz2F_Z1v5YIqQ7aRTdBFyB20mzCNYKnqaWKV8FxATFLykUMCBXdYZqTB_aNfsEb1ynkJmUz3yw3ZNYv6RxUY1lTfBgAQ';
+    const API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjMxOThhOThiLTZiNzEtNGNiZC04Mjc2LWIyMzJlZGYyZDY2NyJ9.eyJpc3MiOiJodHRwczovL2FwaS5jb3plLmNuIiwiYXVkIjpbIkc4RnVXdkMzT0tFelFvdGs4amdXYkl2RXhsZFhNSXdDIl0sImV4cCI6ODIxMDI2Njg3Njc5OSwiaWF0IjoxNzY3ODY1MDU3LCJzdWIiOiJzcGlmZmU6Ly9hcGkuY296ZS5jbi93b3JrbG9hZF9pZGVudGl0eS9pZDo3NTkyNzk2OTc1MzQzMzM3NTE1Iiwic3JjIjoiaW5ib3VuZF9hdXRoX2FjY2Vzc190b2tlbl9pZDo3NTkyOTIyNjA1MDY2MTI1MzQ3In0.FFHB131rNqSG52CN23wOCjuJBiueJNOgrAquAX4rBoj_mVEo8ptJ0_zrtiHCEgr_qG2rSRgFT6JiTpoqBrUqWi8EIqC2nySHNf3wj6z0Zu8-qxMo7zvSqPnf3ZnovkzEtvjgzH5SZwYxR95AQ-HKAc6zRycuUtswvh1YDzAhvhD--UaRzPbcSAkx1qfSf_LzYOPo0rUi0ktD6NrMlh9dln1FM4ENXIHHc44AYBEUZIN-swG-5m6fbaTrw0mmsTvF6y3hQFES9Cc6Lu5xr4lvOOJwnpH4TW3ZOBKZ8HYXZJy_lKAMzjpPsy8SFLhYnFfuvcEIJzV-gcQKetW5J6h-Xg';
     fetch(AGENT_API_URL, {
         method: 'POST',
         headers: {
@@ -135,12 +164,21 @@ function callAgent(message, callback) {
     });
     
     
-    
 }
 
 // ==================== 处理题目响应 ====================
 function handleQuestionResponse(response) {
-    if (response.type === 'question') {
+    // 判断是单道题目还是多道题目
+    if (Array.isArray(response) && response.length > 0) {
+        // 多道题目
+        questionList = response;
+        currentQuestionIndex = 0;
+        displayQuestion(questionList[0]);
+        showToast(`已生成 ${response.length} 道题目`);
+    } else if (response.type === 'question') {
+        // 单道题目
+        questionList = [response];
+        currentQuestionIndex = 0;
         displayQuestion(response);
     } else {
         // 处理其他响应类型
@@ -148,11 +186,18 @@ function handleQuestionResponse(response) {
     }
 }
 
+// ==================== 显示题目 ====================
 function displayQuestion(data) {
     currentQuestion = data;
     
     // 填充题目内容
-    document.getElementById('questionId').textContent = `题目ID: ${data.id}`;
+    // 如果有多道题目，显示进度
+    if (questionList.length > 1) {
+        document.getElementById('questionId').textContent = 
+            `题目 ${currentQuestionIndex + 1}/${questionList.length} | ID: ${data.id}`;
+    } else {
+        document.getElementById('questionId').textContent = `题目ID: ${data.id}`;
+    }
     
     // 构建标签
     const tagsHtml = `
@@ -279,7 +324,22 @@ function closeStats() {
 
 function showNextQuestion() {
     closeResult();
-    showQuickQuestion();
+    
+    // 如果有多道题目，切换到下一题
+    if (questionList.length > 1 && currentQuestionIndex < questionList.length - 1) {
+        currentQuestionIndex++;
+        displayQuestion(questionList[currentQuestionIndex]);
+        showToast(`第 ${currentQuestionIndex + 1} 题`);
+    } else if (questionList.length > 1) {
+        // 已经是最后一题
+        showToast('已经是最后一题了');
+        // 可以重新生成题目
+        questionList = [];
+        currentQuestionIndex = 0;
+    } else {
+        // 单道题目，重新生成
+        showQuickQuestion();
+    }
 }
 
 // ==================== 初始化 ====================
