@@ -1,15 +1,43 @@
 // ==================== 配置区域 ====================
-// 如果你的Agent部署在某个平台，需要配置对应的API地址
-// 示例：
-// const AGENT_API_URL = 'https://your-agent-api.com/chat';
-// const API_KEY = 'your-api-key';
+// 方式1：使用配置文件（推荐）
+// 将 config.example.js 重命名为 config.js 并填写配置
+let CONFIG = window.APP_CONFIG || null;
+
+// 方式2：直接配置（快速测试）
+const AGENT_API_URL = 'https://b9t6wd8hz9.coze.site/stream_run'; // 例如：'https://api.coze.com/v1/chat'
+const API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjI1NDgzMTMwLWQxYzAtNGZlNS05ZjJlLWRmNjU3OTFkMDJlNSJ9.eyJpc3MiOiJodHRwczovL2FwaS5jb3plLmNuIiwiYXVkIjpbIkc4RnVXdkMzT0tFelFvdGs4amdXYkl2RXhsZFhNSXdDIl0sImV4cCI6ODIxMDI2Njg3Njc5OSwiaWF0IjoxNzY3OTQzMjg1LCJzdWIiOiJzcGlmZmU6Ly9hcGkuY296ZS5jbi93b3JrbG9hZF9pZGVudGl0eS9pZDo3NTkyNzk2OTc1MzQzMzM3NTE1Iiwic3JjIjoiaW5ib3VuZF9hdXRoX2FjY2Vzc190b2tlbl9pZDo3NTkzMjU4NTkxMTA1MDU2ODA4In0.wMwPiuRWd8GhPggBCJxOWqM9XCDS9PFfXLW0g8olvOkHSaUaaptPavR3FHr_7dXN74TesNVBslZHsbadIy4cncED68XKmhYeNbb-9bEkzgQ_VDzXEkc3eKQzrmo-6OXc42zBHO-pBa1uN1Gmi5_LDns4tOvN3ePtSLCm1uf9LNpZgDPshP35uqLahSA8DrQS1Q6eaDeDHOFNZ_pYLE0KiqGi_B6XeRtVMh4wEQx_-H2v0hFue1e-pCRdAGw5xMAniG_WzdUW6tuTSz154xE11VBZ9KfSiYqFBPaDk7evAXp6GyTrXSvxJSm3Pxz4AJYm1gS-zfzkFt-GymE4meTFsQ'; // 例如：'pat_xxxxxxxxxxxxxxxxxxxxx'
+
+// 合并配置
+if (!CONFIG) {
+    CONFIG = {
+        API: {
+            BASE_URL: AGENT_API_URL,
+            API_KEY: API_KEY,
+            TIMEOUT: 30000,
+            DEBUG: false
+        },
+        DEFAULTS: {
+            MODULE: 'all',
+            DIFFICULTY: 'all',
+            TYPE: 'all',
+            COUNT: 1
+        },
+        UI: {
+            TITLE: '📚 前端刷题助手',
+            SUBTITLE: '随时随地巩固前端知识'
+        }
+    };
+}
 
 // ==================== 状态管理 ====================
 let currentQuestion = null;
+let questionList = [];  // 题目列表，支持多道题目
+let currentQuestionIndex = 0;  // 当前题目索引
 let currentSettings = {
     module: 'all',
     difficulty: 'all',
-    type: 'all'
+    type: 'all',
+    count: 1  // 题目数量，默认1道
 };
 
 // ==================== 工具函数 ====================
@@ -61,16 +89,35 @@ function initTagSelectors() {
             currentSettings.type = this.dataset.type;
         });
     });
+
+    // 题目数量选择
+    document.querySelectorAll('.count-selector .tag').forEach(tag => {
+        tag.addEventListener('click', function() {
+            document.querySelectorAll('.count-selector .tag').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentSettings.count = parseInt(this.dataset.count);
+        });
+    });
 }
 
 // ==================== 题目相关函数 ====================
 function showQuickQuestion() {
+    // 重置题目列表和索引
+    questionList = [];
+    currentQuestionIndex = 0;
     generateQuestionPrompt();
 }
 
 function generateQuestionPrompt() {
     // 构建题目请求
-    let prompt = '请随机出一道';
+    let prompt = '请';
+    
+    // 根据题目数量调整提示语
+    if (currentSettings.count > 1) {
+        prompt += `随机出${currentSettings.count}道`;
+    } else {
+        prompt += '随机出一道';
+    }
     
     if (currentSettings.module !== 'all') {
         prompt += `${currentSettings.module}相关的`;
@@ -89,6 +136,13 @@ function generateQuestionPrompt() {
     
     prompt += '。';
     
+    // 如果是多道题目，要求返回JSON数组格式
+    if (currentSettings.count > 1) {
+        prompt += ' 请以JSON数组格式返回，每道题目包含：id、content、options（选择题）、module、type、difficulty字段。';
+    } else {
+        prompt += ' 请以JSON格式返回，包含：id、content、options（选择题）、module、type、difficulty字段。';
+    }
+    
     // 调用Agent获取题目
     callAgent(prompt, handleQuestionResponse);
 }
@@ -105,21 +159,59 @@ function generateCustomQuestion() {
 
 // ==================== Agent调用 ====================
 function callAgent(message, callback) {
-    // 这里需要根据你的Agent部署方式来实现
-    // 方式1：如果Agent在Coze上，使用Coze的API
-    // 方式2：如果有自己的HTTP API，直接调用
-    
-    // 模拟调用（实际使用时替换为真实的API调用）
-    showToast('正在获取题目...');
-    
-    // 示例：使用fetch调用API（需要替换为实际的API地址）
-    const AGENT_API_URL = 'https://b9t6wd8hz9.coze.site/stream_run';
-    const API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjMxOThhOThiLTZiNzEtNGNiZC04Mjc2LWIyMzJlZGYyZDY2NyJ9.eyJpc3MiOiJodHRwczovL2FwaS5jb3plLmNuIiwiYXVkIjpbIkc4RnVXdkMzT0tFelFvdGs4amdXYkl2RXhsZFhNSXdDIl0sImV4cCI6ODIxMDI2Njg3Njc5OSwiaWF0IjoxNzY3ODQxNTEzLCJzdWIiOiJzcGlmZmU6Ly9hcGkuY296ZS5jbi93b3JrbG9hZF9pZGVudGl0eS9pZDo3NTkyNzk2OTc1MzQzMzM3NTE1Iiwic3JjIjoiaW5ib3VuZF9hdXRoX2FjY2Vzc190b2tlbl9pZDo3NTkyODIxNDgzNTkyNzQ1MDAyIn0.ExaVg4laFQTmR69IHapvAoVVmH_9u6UgIHunGF6RywL8xSZa-LIfaWEDf83PZUSl0pvi3leLDYh32zJgBDxMAAymR6M44kB6p6f0q-lPk5xlfNwWIaJRrWUUfh3-tI4lkFf35oeeyRKgZoVzzuekU8w3fpYTrX5YmVyuQzYEPjgGTZ1UYwy15T1sPuyFs_zSXgHiNUggBu6XCoymaqiIBAZ0wn9nA_NkKBenQ227W_rAWZpJuZycvq9dT_Nz2F_Z1v5YIqQ7aRTdBFyB20mzCNYKnqaWKV8FxATFLykUMCBXdYZqTB_aNfsEb1ynkJmUz3yw3ZNYv6RxUY1lTfBgAQ';
-    fetch(AGENT_API_URL, {
+    showToast('正在请求...');
+
+    // 如果没有配置API，使用模拟数据
+    if (!CONFIG.API.BASE_URL || !CONFIG.API.API_KEY) {
+        console.log('未配置API，使用模拟数据');
+        setTimeout(() => {
+            // 模拟题目数据
+            const mockQuestion = {
+                type: 'question',
+                content: `模拟题目：在${currentSettings.module === 'all' ? '前端' : currentSettings.module}中，关于以下描述，正确的是？`,
+                options: [
+                    { option: 'A', content: '选项A' },
+                    { option: 'B', content: '选项B' },
+                    { option: 'C', content: '选项C' },
+                    { option: 'D', content: '选项D' }
+                ],
+                id: Date.now(),
+                module: currentSettings.module === 'all' ? 'Vue' : currentSettings.module,
+                type: currentSettings.type === 'all' ? 'choice' : currentSettings.type,
+                difficulty: currentSettings.difficulty === 'all' ? 'medium' : currentSettings.difficulty
+            };
+
+            // 如果是多道题目
+            if (currentSettings.count > 1) {
+                const mockQuestions = [];
+                for (let i = 0; i < currentSettings.count; i++) {
+                    mockQuestions.push({
+                        ...mockQuestion,
+                        id: Date.now() + i,
+                        content: `${mockQuestion.content}（第${i+1}题）`
+                    });
+                }
+                callback(mockQuestions);
+            } else {
+                callback(mockQuestion);
+            }
+        }, 1000);
+        return;
+    }
+
+    // 调用真实API
+    const apiUrl = CONFIG.API.BASE_URL;
+    const apiKey = CONFIG.API.API_KEY;
+
+    // 使用CORS代理解决跨域问题
+    const CORS_PROXY = 'https://corsproxy.io/?';
+    const proxiedUrl = CORS_PROXY + encodeURIComponent(apiUrl);
+
+    fetch(proxiedUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_KEY}`
+            'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
             message: message
@@ -127,20 +219,47 @@ function callAgent(message, callback) {
     })
     .then(response => response.json())
     .then(data => {
+        if (CONFIG.API.DEBUG) {
+            console.log('API响应:', data);
+        }
         callback(data);
     })
     .catch(error => {
-        showToast('请求失败，请重试');
-        console.error(error);
+        console.error('API调用失败:', error);
+        showToast('请求失败，使用模拟数据');
+
+        // 降级：使用模拟数据
+        const mockQuestion = {
+            type: 'question',
+            content: '模拟题目：API调用失败，显示此模拟数据',
+            options: [
+                { option: 'A', content: '选项A' },
+                { option: 'B', content: '选项B' },
+                { option: 'C', content: '选项C' },
+                { option: 'D', content: '选项D' }
+            ],
+            id: Date.now(),
+            module: 'Vue',
+            type: 'choice',
+            difficulty: 'medium'
+        };
+        callback(mockQuestion);
     });
-    
-    
-    
 }
 
 // ==================== 处理题目响应 ====================
 function handleQuestionResponse(response) {
-    if (response.type === 'question') {
+    // 判断是单道题目还是多道题目
+    if (Array.isArray(response) && response.length > 0) {
+        // 多道题目
+        questionList = response;
+        currentQuestionIndex = 0;
+        displayQuestion(questionList[0]);
+        showToast(`已生成 ${response.length} 道题目`);
+    } else if (response.type === 'question') {
+        // 单道题目
+        questionList = [response];
+        currentQuestionIndex = 0;
         displayQuestion(response);
     } else {
         // 处理其他响应类型
@@ -152,7 +271,13 @@ function displayQuestion(data) {
     currentQuestion = data;
     
     // 填充题目内容
-    document.getElementById('questionId').textContent = `题目ID: ${data.id}`;
+    // 如果有多道题目，显示进度
+    if (questionList.length > 1) {
+        document.getElementById('questionId').textContent = 
+            `题目 ${currentQuestionIndex + 1}/${questionList.length} | ID: ${data.id}`;
+    } else {
+        document.getElementById('questionId').textContent = `题目ID: ${data.id}`;
+    }
     
     // 构建标签
     const tagsHtml = `
@@ -279,7 +404,22 @@ function closeStats() {
 
 function showNextQuestion() {
     closeResult();
-    showQuickQuestion();
+    
+    // 如果有多道题目，切换到下一题
+    if (questionList.length > 1 && currentQuestionIndex < questionList.length - 1) {
+        currentQuestionIndex++;
+        displayQuestion(questionList[currentQuestionIndex]);
+        showToast(`第 ${currentQuestionIndex + 1} 题`);
+    } else if (questionList.length > 1) {
+        // 已经是最后一题
+        showToast('已经是最后一题了');
+        // 可以重新生成题目
+        questionList = [];
+        currentQuestionIndex = 0;
+    } else {
+        // 单道题目，重新生成
+        showQuickQuestion();
+    }
 }
 
 // ==================== 初始化 ====================
